@@ -1,48 +1,43 @@
-import Modal from 'components/Modal';
-import React, { Component } from 'react';
+import { useState } from 'react';
+
 import PropTypes from 'prop-types';
 import s from './ImageGalleryItem.module.css';
+import Modal from 'components/Modal';
 
-export default class ImageGalleryItem extends Component {
-  static propTypes = {
-    tags: PropTypes.string,
-    webformatURL: PropTypes.string.isRequired,
-    largeImageURL: PropTypes.string.isRequired,
-  }
+function ImageGalleryItem({ tags, webformatURL, largeImageURL }) {
+  const [isModalShow, setIsModalShow] = useState(false);
 
-  state = {
-    isModalShow: false,
+  const handleToggleModal = () => {
+    setIsModalShow(prev => !prev);
   };
 
-  handleToggleModal = () => {
-    this.setState(({ isModalShow }) => ({
-      isModalShow: !isModalShow,
-    }));
-  };
-
-  render() {
-    const { tags, webformatURL, largeImageURL } = this.props;
-    const { isModalShow } = this.state;
-    return (
-      <>
-        <li className={s.gallery__item}>
+  return (
+    <>
+      <li className={s.gallery__item}>
+        <img
+          className={s.gallery__image}
+          src={webformatURL}
+          alt={tags}
+          onClick={handleToggleModal}
+        />
+      </li>
+      {isModalShow && (
+        <Modal onModalOpen={handleToggleModal}>
           <img
-            className={s.gallery__image}
-            src={webformatURL}
+            className={s.gallery__largeImage}
+            src={largeImageURL}
             alt={tags}
-            onClick={this.handleToggleModal}
           />
-        </li>
-        {isModalShow && (
-          <Modal onModalOpen={this.handleToggleModal}>
-            <img
-              className={s.gallery__largeImage}
-              src={largeImageURL}
-              alt={tags}
-            />
-          </Modal>
-        )}
-      </>
-    );
-  }
+        </Modal>
+      )}
+    </>
+  );
 }
+
+ImageGalleryItem.propTypes = {
+  tags: PropTypes.string,
+  webformatURL: PropTypes.string.isRequired,
+  largeImageURL: PropTypes.string.isRequired,
+};
+
+export default ImageGalleryItem;

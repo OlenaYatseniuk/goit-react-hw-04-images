@@ -1,7 +1,7 @@
 import { ColorRing } from 'react-loader-spinner';
 import s from './Loader.module.css';
 
-export function Loader(props) {
+export function Loader() {
   return (
     <div className={s.loader}>
       <ColorRing

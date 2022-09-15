@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import { useState, useEffect } from 'react';
 import ImageGallery from './ImageGallery';
 import Searchbar from './Searchbar';
 import Button from './Button';
@@ -15,91 +15,98 @@ const STATUS = {
   rejected: 'rejected',
 };
 
+const initialState = {
+  items: [],
+  query: '',
+  page: 1,
+  totalPages: 1,
+  status: STATUS.idle,
+};
+
 const IMAGES_PER_PAGE = 12;
-export class App extends Component {
-  state = {
-    items: [],
-    query: '',
-    page: 1,
-    totalPages: 1,
-    status: STATUS.idle,
-  };
+let isFirstEffect = 0;
 
-  componentDidUpdate(prevProps, prevState) {
-    const { query, page } = this.state;
-    const prevQuery = prevState.query;
-    const prevPage = prevState.page;
+export function App() {
+  const [stateInfo, setStateInfo] = useState(initialState);
 
-    if (!query.trim()) {
-      toast.error('Please write a word to find appropriate images');
+  const { items, page, totalPages, status, query } = stateInfo;
+
+  useEffect(() => {
+    if (isFirstEffect < 2) {
+      isFirstEffect += 1 ;
       return;
     }
 
-    if (query.trim() && (prevQuery !== query || prevPage !== page)) {
-      this.setState({ status: STATUS.pending });
+    if (query !== '') {
 
-      fetchImagesByValue(query, page)
-        .then(({ data: { hits, totalHits } }) => {
+      // if (!query.trim()) {
+      //   toast.error('Please write a word to find appropriate images');
+      //   return;
+      // }
 
-          if (hits.length === 0) {
-            toast.error(
-              "Sorry, we didn't find such images. Try another word, please."
-            );
-            this.setState({ status: STATUS.resolved, items: [] });
-            return;
-          }
-          if (prevQuery === query && prevPage !== page) {
+      if (query.trim()) {
+        setStateInfo(prev => ({ ...prev, status: STATUS.pending }));
 
-            this.setState(prevState => ({
-              items: [...prevState.items, ...hits],
-              page,
-              status: STATUS.resolved,
-            }));
-          } else {
-            toast(`We find ${totalHits} images`);
-            this.setState({
-              items: hits,
-              page,
-              totalPages: Math.ceil(totalHits / IMAGES_PER_PAGE),
-              status: STATUS.resolved,
-            });
-            return;
-          }
-        })
-        .catch(error => {
-          toast.error('Oops... Something went wrong');
-        });
+        fetchImagesByValue(query, page)
+          .then(({ data: { hits, totalHits } }) => {
+            if (hits.length === 0) {
+              toast.error(
+                "Sorry, we didn't find such images. Try another word, please."
+              );
+              setStateInfo(prev => ({
+                ...prev,
+                status: STATUS.resolved,
+                items: [],
+              }));
+              return;
+            }
+            if (page > 1) {
+              setStateInfo(prev => ({
+                ...prev,
+                status: STATUS.resolved,
+                items: [...prev.items, ...hits],
+                page,
+              }));
+            } else {
+              toast(`We find ${totalHits} images`);
+              setStateInfo(prev => ({
+                ...prev,
+                status: STATUS.resolved,
+                items: [...hits],
+                page,
+                totalPages: Math.ceil(totalHits / IMAGES_PER_PAGE),
+              }));
+              return;
+            }
+          })
+          .catch(error => {
+            toast.error('Oops... Something went wrong');
+          });
+      }
     }
-  }
+  }, [query, page]);
 
-  onSearch = value => {
-    if (value === this.state.query) {
+  const onSearch = value => {
+    if (value === query) {
       return;
     }
-    this.setState({
-      query: value,
-      page: 1,
-      totalPages: 1,
-    });
+
+    setStateInfo(prev => ({ ...prev, query: value, page: 1, totalPages: 1 }));
   };
 
-  handleLoadMore = () => {
-    this.setState(prevState => ({ page: prevState.page + 1 }));
+  const handleLoadMore = () => {
+    setStateInfo(prev => ({ ...prev, page: prev.page + 1 }));
   };
 
-  render() {
-    const { items, page, totalPages, status } = this.state;
-
-    return (
-      <div className={s.app}>
-        <Searchbar onSubmit={this.onSearch} />
-        <ImageGallery items={items} />
-        {status === 'pending' && <Loader />}
-        {items.length !== 0 && page < totalPages && (
-          <Button onClick={this.handleLoadMore} />
-        )}
-        <ToastContainer position="top-right" autoClose={2000} />
-      </div>
-    );
-  }
+  return (
+    <div className={s.app}>
+      <Searchbar onSubmit={onSearch} />
+      <ImageGallery items={items} />
+      {status === 'pending' && <Loader />}
+      {items.length !== 0 && page < totalPages && (
+        <Button onClick={handleLoadMore} />
+      )}
+      <ToastContainer position="top-right" autoClose={2000} />
+    </div>
+  );
 }

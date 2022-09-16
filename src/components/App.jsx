@@ -15,68 +15,49 @@ const STATUS = {
   rejected: 'rejected',
 };
 
-const initialState = {
-  items: [],
-  query: '',
-  page: 1,
-  totalPages: 1,
-  status: STATUS.idle,
-};
-
 const IMAGES_PER_PAGE = 12;
 
 export function App() {
-  const [stateInfo, setStateInfo] = useState(initialState);
-
-  const { items, page, totalPages, status, query } = stateInfo;
+  const [items, setItems] = useState([]);
+  const [query, setQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [status, setStatus] = useState(STATUS.idle);
 
   useEffect(() => {
-
-    if(query === ''){
+    if (query === '') {
       return;
     }
+    if (query.trim()) {
+      setStatus(STATUS.pending);
 
-    if (query !== '') {
+      fetchImagesByValue(query, page)
+        .then(({ data: { hits, totalHits } }) => {
+          if (hits.length === 0) {
+            toast.error(
+              "Sorry, we didn't find such images. Try another word, please."
+            );
+            setStatus(STATUS.resolved);
+            setItems([]);
+            return;
+          }
+          if (page > 1) {
+            setStatus(STATUS.resolved);
+            setItems(prev => [...prev, ...hits]);
+            setPage(page);
+          } else {
+            toast(`We find ${totalHits} images`);
+            setStatus(STATUS.resolved);
+            setItems([...hits]);
+            setPage(page);
+            setTotalPages(Math.ceil(totalHits / IMAGES_PER_PAGE));
 
-      if (query.trim()) {
-        setStateInfo(prev => ({ ...prev, status: STATUS.pending }));
-
-        fetchImagesByValue(query, page)
-          .then(({ data: { hits, totalHits } }) => {
-            if (hits.length === 0) {
-              toast.error(
-                "Sorry, we didn't find such images. Try another word, please."
-              );
-              setStateInfo(prev => ({
-                ...prev,
-                status: STATUS.resolved,
-                items: [],
-              }));
-              return;
-            }
-            if (page > 1) {
-              setStateInfo(prev => ({
-                ...prev,
-                status: STATUS.resolved,
-                items: [...prev.items, ...hits],
-                page,
-              }));
-            } else {
-              toast(`We find ${totalHits} images`);
-              setStateInfo(prev => ({
-                ...prev,
-                status: STATUS.resolved,
-                items: [...hits],
-                page,
-                totalPages: Math.ceil(totalHits / IMAGES_PER_PAGE),
-              }));
-              return;
-            }
-          })
-          .catch(error => {
-            toast.error('Oops... Something went wrong');
-          });
-      }
+            return;
+          }
+        })
+        .catch(error => {
+          toast.error('Oops... Something went wrong');
+        });
     }
   }, [query, page]);
 
@@ -85,11 +66,13 @@ export function App() {
       return;
     }
 
-    setStateInfo(prev => ({ ...prev, query: value, page: 1, totalPages: 1 }));
+    setQuery(value);
+    setPage(1);
+    setTotalPages(1);
   };
 
   const handleLoadMore = () => {
-    setStateInfo(prev => ({ ...prev, page: prev.page + 1 }));
+    setPage(prev => prev + 1);
   };
 
   return (

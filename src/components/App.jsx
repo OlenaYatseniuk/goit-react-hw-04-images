@@ -24,7 +24,6 @@ const initialState = {
 };
 
 const IMAGES_PER_PAGE = 12;
-let isFirstEffect = 0;
 
 export function App() {
   const [stateInfo, setStateInfo] = useState(initialState);
@@ -32,17 +31,12 @@ export function App() {
   const { items, page, totalPages, status, query } = stateInfo;
 
   useEffect(() => {
-    if (isFirstEffect < 2) {
-      isFirstEffect += 1 ;
+
+    if(query === ''){
       return;
     }
 
     if (query !== '') {
-
-      // if (!query.trim()) {
-      //   toast.error('Please write a word to find appropriate images');
-      //   return;
-      // }
 
       if (query.trim()) {
         setStateInfo(prev => ({ ...prev, status: STATUS.pending }));
